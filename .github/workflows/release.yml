@@ -3,22 +3,19 @@ name: Release
 on:
   push:
     tags:
-      - "v*"          # triggers on tags like v1.2.0
+      - "v*"
 
 jobs:
   build:
     name: Build – ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             artifact: clocky.exe
             archive:  clocky-windows.zip
-
-          - os: macos-latest
-            artifact: clocky
-            archive:  clocky-macos.tar.gz
 
           - os: ubuntu-latest
             artifact: clocky
@@ -54,8 +51,8 @@ jobs:
           cp target/release/clocky.exe dist/
           Compress-Archive -Path dist/* -DestinationPath ${{ matrix.archive }}
 
-      - name: Package (macOS / Linux)
-        if: matrix.os != 'windows-latest'
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir dist
           cp target/release/clocky dist/
