@@ -950,12 +950,12 @@ fn main() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([430.0, 580.0])
             .with_min_inner_size([340.0, 420.0])
-            .with_title("Clocky"),
+            .with_title("clocky"),
         ..Default::default()
     };
 
     eframe::run_native(
-        "Clocky",
+        "clocky",
         options,
         Box::new(|_cc| Ok(Box::<ClockApp>::default())),
     )
