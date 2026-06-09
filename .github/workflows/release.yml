@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"          # triggers on tags like v1.2.0
+
+jobs:
+  build:
+    name: Build – ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: clocky.exe
+            archive:  clocky-windows.zip
+
+          - os: macos-latest
+            artifact: clocky
+            archive:  clocky-macos.tar.gz
+
+          - os: ubuntu-latest
+            artifact: clocky
+            archive:  clocky-linux.tar.gz
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxkbcommon-dev \
+            libssl-dev \
+            libglib2.0-dev \
+            libcanberra-gtk3-module
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir dist
+          cp target/release/clocky.exe dist/
+          Compress-Archive -Path dist/* -DestinationPath ${{ matrix.archive }}
+
+      - name: Package (macOS / Linux)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir dist
+          cp target/release/clocky dist/
+          tar -czf ${{ matrix.archive }} -C dist .
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.archive }}
