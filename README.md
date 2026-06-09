@@ -132,14 +132,6 @@ git tag v1.2.0
 git push origin v1.2.0
 ```
 
-The workflow (`.github/workflows/release.yml`) will:
-1. Build on **Windows**, **macOS**, and **Linux** in parallel
-2. Package each binary into a zip / tar archive
-3. Attach all three files to a **GitHub Release** automatically
-
-Check the [**Actions**](../../actions) tab to monitor build status.
-
----
 
 ## 🤖 AI Assistance
 
