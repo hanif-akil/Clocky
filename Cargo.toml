@@ -1,7 +1,10 @@
 [package]
-name = "clocky"
-version = "1.2.0"
-edition = "2021"
+name        = "clocky"
+version     = "1.2.0"
+edition     = "2021"
+description = "A polished desktop clock"
+authors     = ["hanif-akil"]
+license     = "MIT"
 
 [dependencies]
 eframe  = "0.29"
