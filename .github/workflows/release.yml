@@ -6,7 +6,7 @@ on:
       - "v*"
 
 permissions:
-  contents: write        # ← this line fixes the error
+  contents: write
 
 jobs:
   build:
@@ -17,12 +17,16 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: clocky.exe
-            archive:  clocky-windows.zip
+            archive: clocky-windows-installer.exe
 
           - os: ubuntu-latest
-            artifact: clocky
-            archive:  clocky-linux.tar.gz
+            archive: clocky-ubuntu.deb
+
+          - os: ubuntu-latest
+            archive: clocky-fedora.rpm
+
+          - os: ubuntu-latest
+            archive: clocky-arch.pkg.tar.zst
 
     steps:
       - uses: actions/checkout@v4
@@ -42,25 +46,160 @@ jobs:
             libxkbcommon-dev \
             libssl-dev \
             libglib2.0-dev \
-            libcanberra-gtk3-module
+            libcanberra-gtk3-module \
+            rpm \
+            libarchive-tools \
+            zstd \
+            fakeroot
 
       - name: Build release
         run: cargo build --release
 
-      - name: Package (Windows)
+      # ════════════════════════════════════════════
+      # WINDOWS — Inno Setup installer
+      # ════════════════════════════════════════════
+      - name: Create Inno Setup script
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          cat > installer.iss << 'EOF'
+          [Setup]
+          AppName=Clocky
+          AppVersion=1.2.0
+          DefaultDirName={autopf}\Clocky
+          DefaultGroupName=Clocky
+          OutputBaseFilename=clocky-windows-installer
+          Compression=lzma
+          SolidCompression=yes
+
+          [Files]
+          Source: "target\release\clocky.exe"; DestDir: "{app}"
+
+          [Icons]
+          Name: "{group}\Clocky";          Filename: "{app}\clocky.exe"
+          Name: "{commondesktop}\Clocky";   Filename: "{app}\clocky.exe"
+
+          [Run]
+          Filename: "{app}\clocky.exe"; Description: "Launch Clocky"; Flags: postinstall nowait
+          EOF
+
+      - name: Build Windows installer
         if: matrix.os == 'windows-latest'
         run: |
-          mkdir dist
-          cp target/release/clocky.exe dist/
-          Compress-Archive -Path dist/* -DestinationPath ${{ matrix.archive }}
+          choco install innosetup -y
+          iscc installer.iss
+          mv Output/clocky-windows-installer.exe clocky-windows-installer.exe
 
-      - name: Package (Linux)
-        if: matrix.os == 'ubuntu-latest'
+      # ════════════════════════════════════════════
+      # UBUNTU — .deb
+      # ════════════════════════════════════════════
+      - name: Build DEB
+        if: matrix.archive == 'clocky-ubuntu.deb'
         run: |
-          mkdir dist
-          cp target/release/clocky dist/
-          tar -czf ${{ matrix.archive }} -C dist .
+          cargo install cargo-deb --locked
 
+          mkdir -p assets
+          cat > assets/clocky.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Clocky
+          Comment=A polished desktop clock
+          Exec=clocky
+          Icon=clocky
+          Terminal=false
+          Type=Application
+          Categories=Utility;Clock;
+          EOF
+
+          cat >> Cargo.toml << 'EOF'
+
+          [package.metadata.deb]
+          maintainer = "hanif-akil"
+          section = "utils"
+          priority = "optional"
+          assets = [
+            ["target/release/clocky",   "usr/bin/clocky",                              "755"],
+            ["assets/clocky.desktop",   "usr/share/applications/clocky.desktop",       "644"],
+          ]
+          EOF
+          cargo deb
+          mv target/debian/*.deb clocky-ubuntu.deb
+
+      # ════════════════════════════════════════════
+      # FEDORA — .rpm
+      # ════════════════════════════════════════════
+      - name: Build RPM
+        if: matrix.archive == 'clocky-fedora.rpm'
+        run: |
+          cargo install cargo-generate-rpm --locked
+
+          mkdir -p assets
+          cat > assets/clocky.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Clocky
+          Comment=A polished desktop clock
+          Exec=clocky
+          Icon=clocky
+          Terminal=false
+          Type=Application
+          Categories=Utility;Clock;
+          EOF
+
+          cat >> Cargo.toml << 'EOF'
+
+          [package.metadata.generate-rpm]
+          assets = [
+            { source = "target/release/clocky",  dest = "/usr/bin/clocky",                              mode = "755" },
+            { source = "assets/clocky.desktop",   dest = "/usr/share/applications/clocky.desktop",       mode = "644" },
+          ]
+          EOF
+          cargo generate-rpm
+          mv target/generate-rpm/*.rpm clocky-fedora.rpm
+
+      # ════════════════════════════════════════════
+      # ARCH — .pkg.tar.zst
+      # ════════════════════════════════════════════
+      - name: Build Arch package
+        if: matrix.archive == 'clocky-arch.pkg.tar.zst'
+        run: |
+          mkdir -p pkg/usr/bin
+          mkdir -p pkg/usr/share/applications
+          cp target/release/clocky  pkg/usr/bin/clocky
+
+          cat > pkg/usr/share/applications/clocky.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Clocky
+          Comment=A polished desktop clock
+          Exec=clocky
+          Icon=clocky
+          Terminal=false
+          Type=Application
+          Categories=Utility;Clock;
+          EOF
+
+          SIZE=$(du -sb pkg/usr | cut -f1)
+
+          cat > pkg/.PKGINFO << EOF
+          pkgname = clocky
+          pkgver = 1.2.0-1
+          pkgdesc = A polished desktop clock
+          url = https://github.com/hanif-akil/Clocky
+          builddate = $(date +%s)
+          packager = hanif-akil
+          size = $SIZE
+          arch = x86_64
+          EOF
+
+          cat > pkg/.MTREE << 'EOF'
+          #mtree
+          EOF
+
+          cd pkg
+          fakeroot bsdtar --zstd -cf ../clocky-arch.pkg.tar.zst *
+          cd ..
+
+      # ════════════════════════════════════════════
+      # Upload to release
+      # ════════════════════════════════════════════
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
