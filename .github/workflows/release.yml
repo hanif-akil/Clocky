@@ -1,47 +1,56 @@
-name: Build Clocky v3
+name: Release Clocky
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+    tags:
+      - 'v*' # Triggers when you push a tag like v1.2.0
 
-env:
-  CARGO_TERM_COLOR: always
+permissions:
+  contents: write # Required to create releases and upload assets
 
 jobs:
   # ────────────────────────────────────────────
-  # WINDOWS BUILD
+  # WINDOWS RELEASE
   # ─────────────────────────────────────────────
-  build-windows:
+  release-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
+        
       - name: Build Release
         run: cargo build --release --verbose
-      - name: Upload Artifact
+        
+      - name: Create Release Asset
+        run: |
+          mkdir release-assets
+          cp target/release/Clocky.exe release-assets/Clocky-v${{ github.ref_name }}-windows-x64.exe
+          
+      - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Clocky-v3-Windows-x64
-          path: target/release/Clocky.exe
+          name: windows-binary
+          path: release-assets/*.exe
 
   # ────────────────────────────────────────────
-  # LINUX BUILD (AppImage)
+  # LINUX RELEASE (AppImage)
   # ────────────────────────────────────────────
-  build-linux:
+  release-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
-
-      # Minimal deps: only what eframe + xdg-portal need
+        
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -50,15 +59,15 @@ jobs:
             libxcb-xfixes0-dev libasound2-dev pkg-config \
             libwayland-dev libegl1-mesa-dev libfontconfig1-dev \
             libfreetype6-dev libexpat1-dev libssl-dev fuse
-
+            
       - name: Build Release Binary
         run: cargo build --release --verbose
-
-      - name: Create AppImage Bundle
+        
+      - name: Create AppImage
         run: |
           mkdir -p AppDir/usr/bin
           cp target/release/Clocky AppDir/usr/bin/
-
+          
           cat > AppDir/Clocky.desktop << 'EOF'
           [Desktop Entry]
           Name=Clocky
@@ -67,13 +76,59 @@ jobs:
           Type=Application
           Categories=Utility;Clock;
           EOF
-
+          
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
-
-      - name: Upload Artifact
+          
+          mkdir release-assets
+          mv Clocky*.AppImage release-assets/Clocky-${{ github.ref_name }}-linux-x86_64.AppImage
+          
+      - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Clocky-v3-Linux-x64
-          path: Clocky*.AppImage
+          name: linux-binary
+          path: release-assets/*.AppImage
+
+  # ────────────────────────────────────────────
+  # CREATE GITHUB RELEASE
+  # ────────────────────────────────────────────
+  create-release:
+    needs: [release-windows, release-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-binary
+          path: artifacts/windows
+          
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-binary
+          path: artifacts/linux
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Clocky ${{ github.ref_name }}
+          body: |
+            ## 🚀 Clocky ${{ github.ref_name }}
+            
+            ### Downloads
+            - **Windows**: `Clocky-${{ github.ref_name }}-windows-x64.exe`
+            - **Linux**: `Clocky-${{ github.ref_name }}-linux-x86_64.AppImage`
+            
+            ### Installation
+            - **Windows**: Run the `.exe` installer.
+            - **Linux**: Make the AppImage executable and run:
+              ```bash
+              chmod +x Clocky-*.AppImage
+              ./Clocky-*.AppImage
+              ```
+          files: |
+            artifacts/windows/*
+            artifacts/linux/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
