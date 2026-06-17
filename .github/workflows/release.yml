@@ -1,206 +1,89 @@
-name: Release
+name: Build Clocky v3
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
-permissions:
-  contents: write
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build – ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            archive: clocky-windows-installer.exe
-
-          - os: ubuntu-latest
-            archive: clocky-ubuntu.deb
-
-          - os: ubuntu-latest
-            archive: clocky-fedora.rpm
-
-          - os: ubuntu-latest
-            archive: clocky-arch.pkg.tar.zst
-
+  # ────────────────────────────────────────────
+  # WINDOWS BUILD
+  # ─────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        
+      - name: Build Release
+        run: cargo build --release --verbose
+        
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Clocky-v3-Windows-x64
+          path: target/release/Clocky.exe
 
-      - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-latest'
+  # ────────────────────────────────────────────
+  # FEDORA / LINUX BUILD (AppImage)
+  # ────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgtk-3-dev \
-            libxcb-render0-dev \
-            libxcb-shape0-dev \
-            libxcb-xfixes0-dev \
-            libxkbcommon-dev \
-            libssl-dev \
-            libglib2.0-dev \
-            libcanberra-gtk3-module \
-            rpm \
-            libarchive-tools \
-            zstd \
-            fakeroot
-
-      - name: Build release
-        run: cargo build --release
-
-      # ════════════════════════════════════════════
-      # WINDOWS — Inno Setup installer
-      # ════════════════════════════════════════════
-      - name: Create Inno Setup script
-        if: matrix.os == 'windows-latest'
-        shell: bash
+            libgtk-3-dev libx11-dev libxcb-render0-dev \
+            libxcb-shape0-dev libxcb-xfixes0-dev \
+            libasound2-dev pkg-config libwayland-dev \
+            libegl1-mesa-dev libfontconfig1-dev \
+            libfreetype6-dev libexpat1-dev libssl-dev fuse
+          
+      - name: Build Release Binary
+        run: cargo build --release --verbose
+        
+      - name: Create AppImage Bundle
         run: |
-          cat > installer.iss << 'EOF'
-          [Setup]
-          AppName=Clocky
-          AppVersion=1.2.0
-          DefaultDirName={autopf}\Clocky
-          DefaultGroupName=Clocky
-          OutputBaseFilename=clocky-windows-installer
-          Compression=lzma
-          SolidCompression=yes
-
-          [Files]
-          Source: "target\release\clocky.exe"; DestDir: "{app}"
-
-          [Icons]
-          Name: "{group}\Clocky";          Filename: "{app}\clocky.exe"
-          Name: "{commondesktop}\Clocky";   Filename: "{app}\clocky.exe"
-
-          [Run]
-          Filename: "{app}\clocky.exe"; Description: "Launch Clocky"; Flags: postinstall nowait
-          EOF
-
-      - name: Build Windows installer
-        if: matrix.os == 'windows-latest'
-        run: |
-          choco install innosetup -y
-          iscc installer.iss
-          mv Output/clocky-windows-installer.exe clocky-windows-installer.exe
-
-      # ════════════════════════════════════════════
-      # UBUNTU — .deb
-      # ════════════════════════════════════════════
-      - name: Build DEB
-        if: matrix.archive == 'clocky-ubuntu.deb'
-        run: |
-          cargo install cargo-deb --locked
-
-          mkdir -p assets
-          cat > assets/clocky.desktop << 'EOF'
+          mkdir -p AppDir/usr/bin
+          cp target/release/Clocky AppDir/usr/bin/
+          
+          # Desktop entry
+          cat > AppDir/Clocky.desktop << 'EOF'
           [Desktop Entry]
           Name=Clocky
-          Comment=A polished desktop clock
-          Exec=clocky
+          Exec=Clocky
           Icon=clocky
-          Terminal=false
           Type=Application
           Categories=Utility;Clock;
           EOF
-
-          cat >> Cargo.toml << 'EOF'
-
-          [package.metadata.deb]
-          maintainer = "hanif-akil"
-          section = "utils"
-          priority = "optional"
-          assets = [
-            ["target/release/clocky",   "usr/bin/clocky",                              "755"],
-            ["assets/clocky.desktop",   "usr/share/applications/clocky.desktop",       "644"],
-          ]
-          EOF
-          cargo deb
-          mv target/debian/*.deb clocky-ubuntu.deb
-
-      # ════════════════════════════════════════════
-      # FEDORA — .rpm
-      # ════════════════════════════════════════════
-      - name: Build RPM
-        if: matrix.archive == 'clocky-fedora.rpm'
-        run: |
-          cargo install cargo-generate-rpm --locked
-
-          mkdir -p assets
-          cat > assets/clocky.desktop << 'EOF'
-          [Desktop Entry]
-          Name=Clocky
-          Comment=A polished desktop clock
-          Exec=clocky
-          Icon=clocky
-          Terminal=false
-          Type=Application
-          Categories=Utility;Clock;
-          EOF
-
-          cat >> Cargo.toml << 'EOF'
-
-          [package.metadata.generate-rpm]
-          assets = [
-            { source = "target/release/clocky",  dest = "/usr/bin/clocky",                              mode = "755" },
-            { source = "assets/clocky.desktop",   dest = "/usr/share/applications/clocky.desktop",       mode = "644" },
-          ]
-          EOF
-          cargo generate-rpm
-          mv target/generate-rpm/*.rpm clocky-fedora.rpm
-
-      # ════════════════════════════════════════════
-      # ARCH — .pkg.tar.zst
-      # ════════════════════════════════════════════
-      - name: Build Arch package
-        if: matrix.archive == 'clocky-arch.pkg.tar.zst'
-        run: |
-          mkdir -p pkg/usr/bin
-          mkdir -p pkg/usr/share/applications
-          cp target/release/clocky  pkg/usr/bin/clocky
-
-          cat > pkg/usr/share/applications/clocky.desktop << 'EOF'
-          [Desktop Entry]
-          Name=Clocky
-          Comment=A polished desktop clock
-          Exec=clocky
-          Icon=clocky
-          Terminal=false
-          Type=Application
-          Categories=Utility;Clock;
-          EOF
-
-          SIZE=$(du -sb pkg/usr | cut -f1)
-
-          cat > pkg/.PKGINFO << EOF
-          pkgname = clocky
-          pkgver = 1.2.0-1
-          pkgdesc = A polished desktop clock
-          url = https://github.com/hanif-akil/Clocky
-          builddate = $(date +%s)
-          packager = hanif-akil
-          size = $SIZE
-          arch = x86_64
-          EOF
-
-          cat > pkg/.MTREE << 'EOF'
-          #mtree
-          EOF
-
-          cd pkg
-          fakeroot bsdtar --zstd -cf ../clocky-arch.pkg.tar.zst *
-          cd ..
-
-      # ════════════════════════════════════════════
-      # Upload to release
-      # ════════════════════════════════════════════
-      - name: Upload to release
-        uses: softprops/action-gh-release@v2
+          
+          # Download linuxdeploy
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          
+          # Build AppImage (auto-detects GTK deps from rfd/egui)
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: ${{ matrix.archive }}
+          name: Clocky-v3-Linux-x64
+          path: Clocky*.AppImage
