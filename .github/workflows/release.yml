@@ -1,12 +1,12 @@
-name: Release Clocky
+name: Release Clocky (Tauri)
 
 on:
   push:
     tags:
-      - 'v*' # Triggers when you push a tag like v1.2.0
+      - 'v*'
 
 permissions:
-  contents: write # Required to create releases and upload assets
+  contents: write
 
 jobs:
   # ────────────────────────────────────────────
@@ -16,119 +16,58 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         
-      - name: Build Release
-        run: cargo build --release --verbose
-        
-      - name: Create Release Asset
-        run: |
-          mkdir release-assets
-          cp target/release/Clocky.exe release-assets/Clocky-v${{ github.ref_name }}-windows-x64.exe
-          
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+      - name: Build Tauri App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: windows-binary
-          path: release-assets/*.exe
+          tagName: ${{ github.ref_name }}
+          releaseName: "Clocky ${{ github.ref_name }}"
+          releaseDraft: false
+          prerelease: false
 
-  # ────────────────────────────────────────────
-  # LINUX RELEASE (AppImage)
+  # ───────────────────────────────────────────
+  # LINUX RELEASE (AppImage + deb)
   # ────────────────────────────────────────────
   release-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         
+      # CRITICAL FIX: Install all deps required by rfd xdg-portal backend
       - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libx11-dev libxcb-render0-dev libxcb-shape0-dev \
-            libxcb-xfixes0-dev libasound2-dev pkg-config \
-            libwayland-dev libegl1-mesa-dev libfontconfig1-dev \
-            libfreetype6-dev libexpat1-dev libssl-dev fuse
-            
-      - name: Build Release Binary
-        run: cargo build --release --verbose
-        
-      - name: Create AppImage
-        run: |
-          mkdir -p AppDir/usr/bin
-          cp target/release/Clocky AppDir/usr/bin/
-          
-          cat > AppDir/Clocky.desktop << 'EOF'
-          [Desktop Entry]
-          Name=Clocky
-          Exec=Clocky
-          Icon=clocky
-          Type=Application
-          Categories=Utility;Clock;
-          EOF
-          
-          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy-x86_64.AppImage
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
-          
-          mkdir release-assets
-          mv Clocky*.AppImage release-assets/Clocky-${{ github.ref_name }}-linux-x86_64.AppImage
-          
-      - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-binary
-          path: release-assets/*.AppImage
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            pkg-config \
+            libdbus-1-dev \
+            libglib2.0-dev
 
-  # ────────────────────────────────────────────
-  # CREATE GITHUB RELEASE
-  # ────────────────────────────────────────────
-  create-release:
-    needs: [release-windows, release-linux]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-binary
-          path: artifacts/windows
-          
-      - name: Download Linux Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-binary
-          path: artifacts/linux
-          
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: Clocky ${{ github.ref_name }}
-          body: |
-            ## 🚀 Clocky ${{ github.ref_name }}
-            
-            ### Downloads
-            - **Windows**: `Clocky-${{ github.ref_name }}-windows-x64.exe`
-            - **Linux**: `Clocky-${{ github.ref_name }}-linux-x86_64.AppImage`
-            
-            ### Installation
-            - **Windows**: Run the `.exe` installer.
-            - **Linux**: Make the AppImage executable and run:
-              ```bash
-              chmod +x Clocky-*.AppImage
-              ./Clocky-*.AppImage
-              ```
-          files: |
-            artifacts/windows/*
-            artifacts/linux/*
+      - name: Build Tauri App
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Clocky ${{ github.ref_name }}"
+          releaseDraft: false
+          prerelease: false
