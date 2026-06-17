@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clocky</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <div class="background-overlay"></div>
+
+        <!-- Navigation -->
+        <nav class="glass-nav">
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="clock">
+                    <span class="tab-icon">🕐</span>
+                    <span class="tab-label">Clock</span>
+                </button>
+                <button class="nav-tab" data-tab="stopwatch">
+                    <span class="tab-icon">⏱</span>
+                    <span class="tab-label">Stopwatch</span>
+                </button>
+                <button class="nav-tab" data-tab="timer">
+                    <span class="tab-icon">⏳</span>
+                    <span class="tab-label">Timer</span>
+                </button>
+                <button class="nav-tab" data-tab="alarm">
+                    <span class="tab-icon">⏰</span>
+                    <span class="tab-label">Alarm</span>
+                </button>
+            </div>
+            <button class="settings-btn" data-tab="settings">
+                <span>⚙</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Clock Panel -->
+            <div class="panel active" id="clock-panel">
+                <div class="glass-card clock-card">
+                    <div class="time-display" id="clock-time">12:00:00 PM</div>
+                    <div class="date-display" id="clock-date">Monday, January 1, 2024</div>
+                </div>
+            </div>
+
+            <!-- Stopwatch Panel -->
+            <div class="panel" id="stopwatch-panel">
+                <div class="glass-card">
+                    <h2 class="panel-title">Stopwatch</h2>
+                    <div class="stopwatch-display" id="stopwatch-time">00:00:00.00</div>
+                    <div class="button-group">
+                        <button class="btn btn-primary" id="stopwatch-toggle">Start</button>
+                        <button class="btn btn-secondary" id="stopwatch-reset">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timer Panel -->
+            <div class="panel" id="timer-panel">
+                <div class="glass-card">
+                    <h2 class="panel-title">Timer</h2>
+                    <div class="timer-ring">
+                        <svg class="ring-svg" viewBox="0 0 200 200">
+                            <circle class="ring-track" cx="100" cy="100" r="85"></circle>
+                            <circle class="ring-progress" id="timer-progress" cx="100" cy="100" r="85"></circle>
+                        </svg>
+                        <div class="timer-display" id="timer-time">01:00</div>
+                    </div>
+                    <div class="timer-inputs" id="timer-inputs">
+                        <div class="input-group">
+                            <label>Min</label>
+                            <input type="number" id="timer-minutes" min="0" max="99" value="1">
+                        </div>
+                        <div class="input-group">
+                            <label>Sec</label>
+                            <input type="number" id="timer-seconds" min="0" max="59" value="0">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-primary" id="timer-toggle">Start</button>
+                        <button class="btn btn-secondary" id="timer-reset">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alarm Panel -->
+            <div class="panel" id="alarm-panel">
+                <div class="glass-card">
+                    <h2 class="panel-title">Alarm</h2>
+                    <div class="alarm-ring">
+                        <svg class="ring-svg" viewBox="0 0 200 200">
+                            <circle class="ring-track" cx="100" cy="100" r="85"></circle>
+                            <circle class="ring-progress" id="alarm-progress" cx="100" cy="100" r="85"></circle>
+                        </svg>
+                        <div class="alarm-indicator" id="alarm-status">Off</div>
+                    </div>
+                    <div class="alarm-inputs">
+                        <div class="input-group">
+                            <label>Hour</label>
+                            <input type="number" id="alarm-hour" min="0" max="23" value="8">
+                        </div>
+                        <div class="input-group">
+                            <label>Min</label>
+                            <input type="number" id="alarm-minute" min="0" max="59" value="0">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-primary" id="alarm-toggle">Set Alarm</button>
+                    </div>
+                    <div class="alarm-info" id="alarm-info"></div>
+                </div>
+            </div>
+
+            <!-- Settings Panel -->
+            <div class="panel" id="settings-panel">
+                <div class="glass-card settings-card">
+                    <h2 class="panel-title">Settings</h2>
+
+                    <div class="setting-section">
+                        <label class="setting-label">Time Format</label>
+                        <div class="toggle-group">
+                            <button class="toggle-btn active" data-format="12">12-hour</button>
+                            <button class="toggle-btn" data-format="24">24-hour</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <label class="setting-label">Color Theme</label>
+                        <div class="theme-grid">
+                            <div class="theme-option" data-theme="Midnight" style="background: linear-gradient(135deg, #82a0ff, #506ec8);">
+                                <span class="theme-name">Midnight</span>
+                            </div>
+                            <div class="theme-option" data-theme="Aurora" style="background: linear-gradient(135deg, #50d2aa, #28a082);">
+                                <span class="theme-name">Aurora</span>
+                            </div>
+                            <div class="theme-option" data-theme="Sakura" style="background: linear-gradient(135deg, #ffa0b4, #c86e8c);">
+                                <span class="theme-name">Sakura</span>
+                            </div>
+                            <div class="theme-option" data-theme="Dusk" style="background: linear-gradient(135deg, #ffbe5a, #c88c32);">
+                                <span class="theme-name">Dusk</span>
+                            </div>
+                            <div class="theme-option" data-theme="Slate" style="background: linear-gradient(135deg, #64d2e6, #3ca0b4);">
+                                <span class="theme-name">Slate</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <label class="setting-label">Background Wallpaper</label>
+                        <div class="wallpaper-controls">
+                            <button class="btn btn-primary" id="pick-wallpaper">Choose Image</button>
+                            <button class="btn btn-secondary" id="remove-wallpaper" style="display: none;">Remove</button>
+                        </div>
+                        <div class="wallpaper-path" id="wallpaper-path"></div>
+                    </div>
+
+                    <div class="setting-section">
+                        <label class="setting-label">Wallpaper Opacity: <span id="opacity-value">35%</span></label>
+                        <input type="range" id="wallpaper-opacity" min="5" max="100" value="35" class="opacity-slider">
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
