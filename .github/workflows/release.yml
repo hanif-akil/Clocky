@@ -51,12 +51,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgtk-3-dev libx11-dev libxcb-render0-dev \
-            libxcb-shape0-dev libxcb-xfixes0-dev \
-            libasound2-dev pkg-config libwayland-dev \
-            libegl1-mesa-dev libfontconfig1-dev \
-            libfreetype6-dev libexpat1-dev libssl-dev fuse
-          
+            libgtk-3-dev \
+            libx11-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libasound2-dev \
+            pkg-config \
+            libwayland-dev \
+            libegl1-mesa-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libexpat1-dev \
+            libssl-dev \
+            fuse \
+            libsoup2.4-dev   # ← REQUIRED for rfd/GTK file picker
+            
       - name: Build Release Binary
         run: cargo build --release --verbose
         
@@ -65,7 +75,6 @@ jobs:
           mkdir -p AppDir/usr/bin
           cp target/release/Clocky AppDir/usr/bin/
           
-          # Desktop entry
           cat > AppDir/Clocky.desktop << 'EOF'
           [Desktop Entry]
           Name=Clocky
@@ -75,11 +84,8 @@ jobs:
           Categories=Utility;Clock;
           EOF
           
-          # Download linuxdeploy
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
-          
-          # Build AppImage (auto-detects GTK deps from rfd/egui)
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
           
       - name: Upload Artifact
