@@ -1,0 +1,837 @@
+// Theme Colors
+export global ThemeColors {
+    in-out property<color> primary: #82a0ff;
+    in-out property<color> primary-dark: #506ec8;
+    in-out property<color> bg-dark: #0c1026;
+    in-out property<color> text-primary: #dce1eb;
+    in-out property<color> text-secondary: #a0a8b9;
+    in-out property<color> glass-bg: rgba(12, 16, 38, 180);
+    in-out property<color> glass-border: rgba(130, 160, 255, 50);
+}
+
+// Main Window
+export MainWindow := Window {
+    width: 430px;
+    height: 580px;
+    min-width: 340px;
+    min-height: 420px;
+    title: "Clocky";
+    background: ThemeColors.bg-dark;
+
+    in-out property<bool> is-clock-mode: true;
+    in-out property<bool> is-stopwatch-mode: false;
+    in-out property<bool> is-timer-mode: false;
+    in-out property<bool> is-alarm-mode: false;
+    in-out property<bool> is-settings-mode: false;
+    in-out property<bool> is-busted-mode: false;
+
+    // Top Navigation Bar
+    Rectangle {
+        height: 60px;
+        width: parent.width;
+        background: ThemeColors.glass-bg;
+        z-order: 10;
+
+        HorizontalLayout {
+            alignment: horizontal-center;
+            spacing: 4px;
+            padding: 10px;
+
+            // Clock Tab
+            TouchArea {
+                clicked => {
+                    root.is-clock-mode = true;
+                    root.is-stopwatch-mode = false;
+                    root.is-timer-mode = false;
+                    root.is-alarm-mode = false;
+                    root.is-settings-mode = false;
+                    root.is-busted-mode = false;
+                }
+                Rectangle {
+                    background: root.is-clock-mode ? rgba(130, 160, 255, 40) : transparent;
+                    border-radius: 10px;
+                    padding: 8px 14px;
+                    Text {
+                        text: "🕐 Clock";
+                        color: root.is-clock-mode ? ThemeColors.primary : ThemeColors.text-secondary;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+                }
+            }
+
+            // Stopwatch Tab
+            TouchArea {
+                clicked => {
+                    root.is-clock-mode = false;
+                    root.is-stopwatch-mode = true;
+                    root.is-timer-mode = false;
+                    root.is-alarm-mode = false;
+                    root.is-settings-mode = false;
+                    root.is-busted-mode = false;
+                }
+                Rectangle {
+                    background: root.is-stopwatch-mode ? rgba(130, 160, 255, 40) : transparent;
+                    border-radius: 10px;
+                    padding: 8px 14px;
+                    Text {
+                        text: "⏱ Stopwatch";
+                        color: root.is-stopwatch-mode ? ThemeColors.primary : ThemeColors.text-secondary;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+                }
+            }
+
+            // Timer Tab
+            TouchArea {
+                clicked => {
+                    root.is-clock-mode = false;
+                    root.is-stopwatch-mode = false;
+                    root.is-timer-mode = true;
+                    root.is-alarm-mode = false;
+                    root.is-settings-mode = false;
+                    root.is-busted-mode = false;
+                }
+                Rectangle {
+                    background: root.is-timer-mode ? rgba(130, 160, 255, 40) : transparent;
+                    border-radius: 10px;
+                    padding: 8px 14px;
+                    Text {
+                        text: "⏳ Timer";
+                        color: root.is-timer-mode ? ThemeColors.primary : ThemeColors.text-secondary;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+                }
+            }
+
+            // Alarm Tab
+            TouchArea {
+                clicked => {
+                    root.is-clock-mode = false;
+                    root.is-stopwatch-mode = false;
+                    root.is-timer-mode = false;
+                    root.is-alarm-mode = true;
+                    root.is-settings-mode = false;
+                    root.is-busted-mode = false;
+                }
+                Rectangle {
+                    background: root.is-alarm-mode ? rgba(130, 160, 255, 40) : transparent;
+                    border-radius: 10px;
+                    padding: 8px 14px;
+                    Text {
+                        text: "⏰ Alarm";
+                        color: root.is-alarm-mode ? ThemeColors.primary : ThemeColors.text-secondary;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+                }
+            }
+
+            // Settings Button
+            TouchArea {
+                clicked => {
+                    root.is-clock-mode = false;
+                    root.is-stopwatch-mode = false;
+                    root.is-timer-mode = false;
+                    root.is-alarm-mode = false;
+                    root.is-settings-mode = !root.is-settings-mode;
+                    root.is-busted-mode = false;
+                }
+                Rectangle {
+                    background: root.is-settings-mode ? rgba(130, 160, 255, 40) : transparent;
+                    border-radius: 10px;
+                    padding: 8px 12px;
+                    Text {
+                        text: "⚙";
+                        font-size: 18px;
+                        color: root.is-settings-mode ? ThemeColors.primary : ThemeColors.text-secondary;
+                    }
+                }
+            }
+        }
+    }
+
+    // Main Content Area
+    Rectangle {
+        y: 60px;
+        width: parent.width;
+        height: parent.height - 60px;
+        background: transparent;
+
+        // Clock Panel
+        if (root.is-clock-mode) {
+            VerticalLayout {
+                alignment: horizontal-center;
+                spacing: 10px;
+                padding: 30px;
+
+                Rectangle {
+                    background: ThemeColors.glass-bg;
+                    border-radius: 20px;
+                    border-width: 1px;
+                    border-color: ThemeColors.glass-border;
+                    padding: 40px;
+                    min-width: 340px;
+                    min-height: 280px;
+
+                    VerticalLayout {
+                        alignment: horizontal-center;
+                        spacing: 12px;
+
+                        Text {
+                            text: "12:00:00 PM";  // Will be updated from Rust
+                            font-size: 52px;
+                            font-weight: 700;
+                            color: ThemeColors.primary;
+                            letter-spacing: 2px;
+                        }
+
+                        Text {
+                            text: "Monday, January 1, 2024";  // Will be updated from Rust
+                            font-size: 16px;
+                            color: ThemeColors.text-secondary;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Stopwatch Panel
+        if (root.is-stopwatch-mode) {
+            VerticalLayout {
+                alignment: horizontal-center;
+                spacing: 16px;
+                padding: 20px;
+
+                Rectangle {
+                    background: ThemeColors.glass-bg;
+                    border-radius: 20px;
+                    border-width: 1px;
+                    border-color: ThemeColors.glass-border;
+                    padding: 32px;
+                    min-width: 340px;
+
+                    VerticalLayout {
+                        alignment: horizontal-center;
+                        spacing: 20px;
+
+                        Text {
+                            text: "Stopwatch";
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: ThemeColors.text-secondary;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+
+                        Text {
+                            text: "00:00:00.00";  // Will be updated from Rust
+                            font-size: 48px;
+                            font-weight: 700;
+                            color: ThemeColors.primary;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 12px;
+
+                            TouchArea {
+                                clicked => { /* Start/Pause */ }
+                                Rectangle {
+                                    background: ThemeColors.primary;
+                                    border-radius: 8px;
+                                    padding: 12px 28px;
+                                    Text {
+                                        text: "Start";
+                                        color: #0f0f14;
+                                        font-weight: 600;
+                                    }
+                                }
+                            }
+
+                            TouchArea {
+                                clicked => { /* Reset */ }
+                                Rectangle {
+                                    background: transparent;
+                                    border-radius: 8px;
+                                    border-width: 1px;
+                                    border-color: rgba(130, 160, 255, 70);
+                                    padding: 12px 28px;
+                                    Text {
+                                        text: "Reset";
+                                        color: ThemeColors.text-secondary;
+                                        font-weight: 600;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Busted Button
+                        TouchArea {
+                            clicked => {
+                                root.is-busted-mode = true;
+                                root.is-stopwatch-mode = false;
+                            }
+                            Rectangle {
+                                background: rgba(255, 110, 110, 150);
+                                border-radius: 10px;
+                                padding: 14px 32px;
+                                Text {
+                                    text: "🔥 Busted - Code Tracker";
+                                    color: white;
+                                    font-weight: 700;
+                                    font-size: 15px;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Busted Panel (Coding Tracker)
+        if (root.is-busted-mode) {
+            VerticalLayout {
+                alignment: horizontal-center;
+                spacing: 12px;
+                padding: 16px;
+
+                Rectangle {
+                    background: ThemeColors.glass-bg;
+                    border-radius: 20px;
+                    border-width: 1px;
+                    border-color: ThemeColors.glass-border;
+                    padding: 24px;
+                    min-width: 340px;
+                    max-height: 480px;
+
+                    VerticalLayout {
+                        spacing: 16px;
+
+                        // Header
+                        HorizontalLayout {
+                            Text {
+                                text: "🔥 Busted - Code Tracker";
+                                font-size: 16px;
+                                font-weight: 700;
+                                color: rgba(255, 110, 110, 255);
+                            }
+                            TouchArea {
+                                clicked => {
+                                    root.is-busted-mode = false;
+                                    root.is-stopwatch-mode = true;
+                                }
+                                Rectangle {
+                                    width: 30px;
+                                    height: 30px;
+                                    background: transparent;
+                                    border-radius: 8px;
+                                    Text {
+                                        text: "✕";
+                                        font-size: 18px;
+                                        color: ThemeColors.text-secondary;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Project Name Input
+                        TextInput {
+                            placeholder-text: "Enter project name...";
+                            background: rgba(130, 160, 255, 20);
+                            border-radius: 8px;
+                            border-width: 1px;
+                            border-color: ThemeColors.glass-border;
+                            padding: 10px;
+                            color: ThemeColors.text-primary;
+                            font-size: 14px;
+                        }
+
+                        // Timer Display
+                        Text {
+                            text: "00:00:00";
+                            font-size: 42px;
+                            font-weight: 700;
+                            color: rgba(255, 110, 110, 255);
+                            horizontal-alignment: center;
+                        }
+
+                        // Control Buttons
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            TouchArea {
+                                clicked => { /* Start */ }
+                                Rectangle {
+                                    background: rgba(80, 210, 170, 200);
+                                    border-radius: 8px;
+                                    padding: 10px 20px;
+                                    Text {
+                                        text: "▶ Start";
+                                        color: #0f0f14;
+                                        font-weight: 600;
+                                    }
+                                }
+                            }
+
+                            TouchArea {
+                                clicked => { /* Stop */ }
+                                Rectangle {
+                                    background: rgba(255, 110, 110, 200);
+                                    border-radius: 8px;
+                                    padding: 10px 20px;
+                                    Text {
+                                        text: "⏹ Stop";
+                                        color: white;
+                                        font-weight: 600;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Stats
+                        Rectangle {
+                            background: rgba(130, 160, 255, 15);
+                            border-radius: 10px;
+                            padding: 12px;
+                            min-height: 60px;
+
+                            VerticalLayout {
+                                spacing: 6px;
+                                Text {
+                                    text: "Total Sessions: 0";
+                                    color: ThemeColors.text-secondary;
+                                    font-size: 13px;
+                                }
+                                Text {
+                                    text: "Total Time: 00:00:00";
+                                    color: ThemeColors.text-secondary;
+                                    font-size: 13px;
+                                }
+                            }
+                        }
+
+                        // Log Button
+                        TouchArea {
+                            clicked => { /* Open Logs */ }
+                            Rectangle {
+                                background: ThemeColors.primary;
+                                border-radius: 8px;
+                                padding: 10px;
+                                Text {
+                                    text: "📄 View Session Logs";
+                                    color: #0f0f14;
+                                    font-weight: 600;
+                                    horizontal-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Timer Panel
+        if (root.is-timer-mode) {
+            VerticalLayout {
+                alignment: horizontal-center;
+                spacing: 16px;
+                padding: 20px;
+
+                Rectangle {
+                    background: ThemeColors.glass-bg;
+                    border-radius: 20px;
+                    border-width: 1px;
+                    border-color: ThemeColors.glass-border;
+                    padding: 32px;
+                    min-width: 340px;
+
+                    VerticalLayout {
+                        alignment: horizontal-center;
+                        spacing: 20px;
+
+                        Text {
+                            text: "Timer";
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: ThemeColors.text-secondary;
+                            text-transform: uppercase;
+                        }
+
+                        // Circular Progress (simplified)
+                        Rectangle {
+                            width: 200px;
+                            height: 200px;
+                            background: transparent;
+                            border-radius: 100px;
+                            border-width: 10px;
+                            border-color: rgba(130, 160, 255, 30);
+
+                            Text {
+                                text: "01:00";
+                                font-size: 38px;
+                                font-weight: 700;
+                                color: ThemeColors.primary;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        HorizontalLayout {
+                            spacing: 16px;
+
+                            Rectangle {
+                                background: rgba(130, 160, 255, 20);
+                                border-radius: 10px;
+                                padding: 10px;
+                                min-width: 70px;
+                                VerticalLayout {
+                                    Text {
+                                        text: "Min";
+                                        font-size: 12px;
+                                        color: ThemeColors.text-secondary;
+                                        horizontal-alignment: center;
+                                    }
+                                    TextInput {
+                                        text: "1";
+                                        background: transparent;
+                                        color: ThemeColors.text-primary;
+                                        font-size: 18px;
+                                        horizontal-alignment: center;
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                background: rgba(130, 160, 255, 20);
+                                border-radius: 10px;
+                                padding: 10px;
+                                min-width: 70px;
+                                VerticalLayout {
+                                    Text {
+                                        text: "Sec";
+                                        font-size: 12px;
+                                        color: ThemeColors.text-secondary;
+                                        horizontal-alignment: center;
+                                    }
+                                    TextInput {
+                                        text: "0";
+                                        background: transparent;
+                                        color: ThemeColors.text-primary;
+                                        font-size: 18px;
+                                        horizontal-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+
+                        HorizontalLayout {
+                            spacing: 12px;
+
+                            TouchArea {
+                                clicked => { /* Start */ }
+                                Rectangle {
+                                    background: ThemeColors.primary;
+                                    border-radius: 8px;
+                                    padding: 12px 28px;
+                                    Text {
+                                        text: "Start";
+                                        color: #0f0f14;
+                                        font-weight: 600;
+                                    }
+                                }
+                            }
+
+                            TouchArea {
+                                clicked => { /* Reset */ }
+                                Rectangle {
+                                    background: transparent;
+                                    border-radius: 8px;
+                                    border-width: 1px;
+                                    border-color: rgba(130, 160, 255, 70);
+                                    padding: 12px 28px;
+                                    Text {
+                                        text: "Reset";
+                                        color: ThemeColors.text-secondary;
+                                        font-weight: 600;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Alarm Panel
+        if (root.is-alarm-mode) {
+            VerticalLayout {
+                alignment: horizontal-center;
+                spacing: 16px;
+                padding: 20px;
+
+                Rectangle {
+                    background: ThemeColors.glass-bg;
+                    border-radius: 20px;
+                    border-width: 1px;
+                    border-color: ThemeColors.glass-border;
+                    padding: 32px;
+                    min-width: 340px;
+
+                    VerticalLayout {
+                        alignment: horizontal-center;
+                        spacing: 20px;
+
+                        Text {
+                            text: "Alarm";
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: ThemeColors.text-secondary;
+                            text-transform: uppercase;
+                        }
+
+                        Rectangle {
+                            width: 200px;
+                            height: 200px;
+                            background: transparent;
+                            border-radius: 100px;
+                            border-width: 10px;
+                            border-color: rgba(130, 160, 255, 30);
+
+                            Text {
+                                text: "Off";
+                                font-size: 24px;
+                                font-weight: 600;
+                                color: ThemeColors.text-secondary;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        HorizontalLayout {
+                            spacing: 16px;
+
+                            Rectangle {
+                                background: rgba(130, 160, 255, 20);
+                                border-radius: 10px;
+                                padding: 10px;
+                                min-width: 70px;
+                                VerticalLayout {
+                                    Text {
+                                        text: "Hour";
+                                        font-size: 12px;
+                                        color: ThemeColors.text-secondary;
+                                        horizontal-alignment: center;
+                                    }
+                                    TextInput {
+                                        text: "8";
+                                        background: transparent;
+                                        color: ThemeColors.text-primary;
+                                        font-size: 18px;
+                                        horizontal-alignment: center;
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                background: rgba(130, 160, 255, 20);
+                                border-radius: 10px;
+                                padding: 10px;
+                                min-width: 70px;
+                                VerticalLayout {
+                                    Text {
+                                        text: "Min";
+                                        font-size: 12px;
+                                        color: ThemeColors.text-secondary;
+                                        horizontal-alignment: center;
+                                    }
+                                    TextInput {
+                                        text: "0";
+                                        background: transparent;
+                                        color: ThemeColors.text-primary;
+                                        font-size: 18px;
+                                        horizontal-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+
+                        TouchArea {
+                            clicked => { /* Set Alarm */ }
+                            Rectangle {
+                                background: ThemeColors.primary;
+                                border-radius: 8px;
+                                padding: 12px 28px;
+                                Text {
+                                    text: "Set Alarm";
+                                    color: #0f0f14;
+                                    font-weight: 600;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Settings Panel
+        if (root.is-settings-mode) {
+            VerticalLayout {
+                alignment: horizontal-center;
+                spacing: 16px;
+                padding: 20px;
+
+                Rectangle {
+                    background: ThemeColors.glass-bg;
+                    border-radius: 20px;
+                    border-width: 1px;
+                    border-color: ThemeColors.glass-border;
+                    padding: 28px;
+                    min-width: 340px;
+                    max-height: 460px;
+
+                    VerticalLayout {
+                        spacing: 20px;
+
+                        Text {
+                            text: "Settings";
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: ThemeColors.text-secondary;
+                            text-transform: uppercase;
+                        }
+
+                        // Time Format
+                        VerticalLayout {
+                            spacing: 8px;
+                            Text {
+                                text: "Time Format";
+                                font-size: 13px;
+                                font-weight: 600;
+                                color: ThemeColors.text-secondary;
+                            }
+                            HorizontalLayout {
+                                spacing: 8px;
+                                TouchArea {
+                                    clicked => { /* 12-hour */ }
+                                    Rectangle {
+                                        background: ThemeColors.primary;
+                                        border-radius: 8px;
+                                        padding: 10px 20px;
+                                        Text {
+                                            text: "12-hour";
+                                            color: #0f0f14;
+                                            font-weight: 600;
+                                        }
+                                    }
+                                }
+                                TouchArea {
+                                    clicked => { /* 24-hour */ }
+                                    Rectangle {
+                                        background: transparent;
+                                        border-radius: 8px;
+                                        border-width: 1px;
+                                        border-color: rgba(130, 160, 255, 70);
+                                        padding: 10px 20px;
+                                        Text {
+                                            text: "24-hour";
+                                            color: ThemeColors.text-secondary;
+                                            font-weight: 600;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: rgba(130, 160, 255, 40);
+                        }
+
+                        // Theme Selection
+                        VerticalLayout {
+                            spacing: 8px;
+                            Text {
+                                text: "Color Theme";
+                                font-size: 13px;
+                                font-weight: 600;
+                                color: ThemeColors.text-secondary;
+                            }
+                            GridLayout {
+                                columns: 5;
+                                spacing: 8px;
+
+                                // Theme swatches would go here
+                                Rectangle {
+                                    background: #82a0ff;
+                                    border-radius: 8px;
+                                    min-width: 50px;
+                                    min-height: 50px;
+                                }
+                                Rectangle {
+                                    background: #50d2aa;
+                                    border-radius: 8px;
+                                    min-width: 50px;
+                                    min-height: 50px;
+                                }
+                                Rectangle {
+                                    background: #ffa0b4;
+                                    border-radius: 8px;
+                                    min-width: 50px;
+                                    min-height: 50px;
+                                }
+                                Rectangle {
+                                    background: #ffbe5a;
+                                    border-radius: 8px;
+                                    min-width: 50px;
+                                    min-height: 50px;
+                                }
+                                Rectangle {
+                                    background: #64d2e6;
+                                    border-radius: 8px;
+                                    min-width: 50px;
+                                    min-height: 50px;
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: rgba(130, 160, 255, 40);
+                        }
+
+                        // Wallpaper
+                        VerticalLayout {
+                            spacing: 8px;
+                            Text {
+                                text: "Background Wallpaper";
+                                font-size: 13px;
+                                font-weight: 600;
+                                color: ThemeColors.text-secondary;
+                            }
+                            HorizontalLayout {
+                                spacing: 8px;
+                                TouchArea {
+                                    clicked => { /* Choose Image */ }
+                                    Rectangle {
+                                        background: ThemeColors.primary;
+                                        border-radius: 8px;
+                                        padding: 10px 16px;
+                                        Text {
+                                            text: "Choose Image";
+                                            color: #0f0f14;
+                                            font-weight: 600;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
